@@ -176,8 +176,8 @@ int main(int argc, char *argv[])
 	}
 	setup();
 
-	uintptr_t addr = ksymtab_init_task_addr();
-	printf("init_task addr: %x", addr);
+	uintptr_t addr = 0x80aee768;//ksymtab_init_task_addr();
+	printf("init_task addr: %x\n", addr);
 	// Control blocks
 	const cb_t cb = bus_to_virtual(BUS_ADDRESS);
 
