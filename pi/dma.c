@@ -36,48 +36,57 @@ static int get_dma_channel_fd(void)
 	return dma_channel_fd;
 }
 
+
+void writeBitmasked(volatile uint32_t *dest, uint32_t mask, uint32_t value) {
+    uint32_t cur = *dest;
+    uint32_t new = (cur & (~mask)) | (value & mask);
+    *dest = new;
+    *dest = new; //added safety for when crossing memory barriers.
+}
+
+#define DMAENABLE 0x00000ff0
 int reserve_dma_channel(void)
 {
 	int dma_channel_fd = 5;//get_dma_channel_fd();
+	 writeBitmasked(dmaBaseMem + DMAENABLE/4, 1 << dmaChNum, 1 << dmaChNum);
+	// if (dma_channel_fd == -1)
+	// 	return -1;
+	// int channel = -1;
+	// char buf[10];
 
-	if (dma_channel_fd == -1)
-		return -1;
-	int channel = -1;
-	char buf[10];
-	fprintf(stderr, "%d", dma_channel_fd);
-	ssize_t amount = read(dma_channel_fd, buf, sizeof buf - 1);
-	fprintf(stderr, "%d", amount);
-	if (amount <= 0)
-		return -1;
-	if (buf[amount-1] != '\n')
-	{
-		fputs("This shouldn't happen!\n", stderr);
-		return -1;
-	}
-	buf[amount-1] = 0;
-	int mask = atoi(buf);
-	static const char channels[] = {4, 5, 8, 9, 10, 11, 12, 13, 14};
-	for (int i = 0; i < sizeof channels; ++i)
-	{
-		if (mask & (1 << channels[i]))
-		{
-			// Channel is not reserved by the GPU at
-			// least!
-			channel = channels[i];
-			break;
-		}
-	}
-	if (channel == -1)
-		return -1;
-	// Clear the corresponding bit and write the mask back.
-	mask &= ~(1 << channel);
-	sprintf(buf, "%d\n", mask);
-	lseek(dma_channel_fd, 0, SEEK_SET);
-	size_t len = strlen(buf);
-	amount = write(dma_channel_fd, buf, len);
+	// ssize_t amount = read(dma_channel_fd, buf, sizeof buf - 1);
+	// fprintf(stderr, "%d", amount);
+	// if (amount <= 0)
+	// 	return -1;
+	// if (buf[amount-1] != '\n')
+	// {
+	// 	fputs("This shouldn't happen!\n", stderr);
+	// 	return -1;
+	// }
+	// buf[amount-1] = 0;
+	// int mask = atoi(buf);
+	// static const char channels[] = {4, 5, 8, 9, 10, 11, 12, 13, 14};
+	// for (int i = 0; i < sizeof channels; ++i)
+	// {
+	// 	if (mask & (1 << channels[i]))
+	// 	{
+	// 		// Channel is not reserved by the GPU at
+	// 		// least!
+	// 		channel = channels[i];
+	// 		break;
+	// 	}
+	// }
+	// if (channel == -1)
+	// 	return -1;
+	// // Clear the corresponding bit and write the mask back.
+	// mask &= ~(1 << channel);
+	// sprintf(buf, "%d\n", mask);
+	// lseek(dma_channel_fd, 0, SEEK_SET);
+	// size_t len = strlen(buf);
+	// amount = write(dma_channel_fd, buf, len);
 
-	if (amount != len)
-		channel = -1;
+	// if (amount != len)
+	// 	channel = -1;
 	return channel;
 }
 
