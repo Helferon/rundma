@@ -58,6 +58,25 @@
 #define DMA_CB_TI_DEST_INC (1<<4)
 #define DMA_CB_TI_SRC_INC (1<<8)
 
+
+void makeVirtPhysPage(void** virtAddr, void** physAddr) {
+    *virtAddr = valloc(PAGE_SIZE); //allocate one page of RAM
+
+    //force page into RAM and then lock it there:
+    ((int*)*virtAddr)[0] = 1;
+    mlock(*virtAddr, PAGE_SIZE);
+    memset(*virtAddr, 0, PAGE_SIZE); //zero-fill the page for convenience
+
+    //Magic to determine the physical address for this page:
+    uint64_t pageInfo;
+    int file = open("/proc/self/pagemap", 'r');
+    lseek(file, ((size_t)*virtAddr)/PAGE_SIZE*8, SEEK_SET);
+    read(file, &pageInfo, 8);
+
+    *physAddr = (void*)(size_t)(pageInfo*PAGE_SIZE);
+    printf("makeVirtPhysPage virtual to phys: %p -> %p\n", *virtAddr, *physAddr);
+}
+
 //set bits designated by (mask) at the address (dest) to (value), without affecting the other bits
 //eg if x = 0b11001100
 //  writeBitmasked(&x, 0b00000110, 0b11110011),
