@@ -336,8 +336,9 @@ int main(int argc, char *argv[])
 	void *virtCbPage3, *physCbPage3;
     makeVirtPhysPage(&virtCbPage3, &physCbPage3);
 	// Control blocks
+	printf("HELLO");
 	cb_t cb = virtCbPage1;
-printf("asdfasdf");
+printf("THERE");
 	// Tables
 #define TABLE_ADDRESS (BUS_ADDRESS + 0x2000)
 	vuint8_t *kv2b_table = virtCbPage2;
