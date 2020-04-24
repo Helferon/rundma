@@ -333,8 +333,8 @@ int main(int argc, char *argv[])
 	void *virtCbPage2, *physCbPage2;
     makeVirtPhysPage(&virtCbPage2, &physCbPage2);
 
-	void *virtCbPage3, *physCbPage3;
-    makeVirtPhysPage(&virtCbPage3, &physCbPage3);
+	// void *virtCbPage3, *physCbPage3;
+    // makeVirtPhysPage(&virtCbPage3, &physCbPage3);
 	// Control blocks
 	printf("HELLO");
 	cb_t cb = virtCbPage1;
@@ -348,7 +348,7 @@ printf("THERE");
 	printf("asdfasdf");
 	// Data
 #define DATA_ADDRESS (BUS_ADDRESS + 0x3000)
-	vuint32_t *next_task = virtCbPage3;
+	vuint32_t *next_task = virtCbPage2 + 0x500;
 	vuint32_t *cred = next_task + 1;
 	vuint32_t *dummy = cred + 1;
 	vuint8_t *uid = (vuint8_t *)(dummy + 1);
