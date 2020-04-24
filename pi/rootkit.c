@@ -333,8 +333,8 @@ int main(int argc, char *argv[])
 	void *virtCbPage2, *physCbPage2;
     makeVirtPhysPage(&virtCbPage2, &physCbPage2);
 
-	// void *virtCbPage3, *physCbPage3;
-    // makeVirtPhysPage(&virtCbPage3, &physCbPage3);
+	void *virtCbPage3, *physCbPage3;
+    makeVirtPhysPage(&virtCbPage3, &physCbPage3);
 	// Control blocks
 	printf("HELLO");
 	cb_t cb = virtCbPage1;
@@ -426,7 +426,7 @@ printf("THERE");
 	setup_cb(cb + 19, NULL, dummy, 8, cb + 2);
 
 	// Start the DMA running and then exit.
-	run_dma(cb, physCbPage1);
+	// run_dma(cb, physCbPage1);
 
 	//enable DMA channel (it's probably already enabled, but we want to be sure):
     writeBitmasked(dmaBaseMem + DMAENABLE/4, 1 << dmaChNum, 1 << dmaChNum);
