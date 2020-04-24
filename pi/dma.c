@@ -48,7 +48,7 @@ void writeBitmasked(volatile uint32_t *dest, uint32_t mask, uint32_t value) {
 int reserve_dma_channel(void)
 {
 	int dma_channel_fd = 5;//get_dma_channel_fd();
-	 writeBitmasked(dmaBaseMem + DMAENABLE/4, 1 << dmaChNum, 1 << dmaChNum);
+	writeBitmasked(dma + DMAENABLE/4, 1 << dma_channel_fd, 1 << dma_channel_fd);
 	// if (dma_channel_fd == -1)
 	// 	return -1;
 	// int channel = -1;
@@ -87,7 +87,7 @@ int reserve_dma_channel(void)
 
 	// if (amount != len)
 	// 	channel = -1;
-	return channel;
+	return dma_channel_fd;
 }
 
 int unreserve_dma_channel(int channel)

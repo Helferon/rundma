@@ -68,6 +68,7 @@ static void setup(void)
 	}
 	printf("dma_channel = %d\n", dma_channel);
 	dma = get_dma_channel(dma_channel);
+	printf("dma: %x", dma);
 	physical_memory = sdram_map(SDRAM_BASE, MEMORY_SIZE);
 	if (physical_memory == MAP_FAILED)
 	{
