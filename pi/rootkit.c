@@ -419,7 +419,7 @@ int main(int argc, char *argv[])
     dmaHeader->CONBLK_AD = (uint32_t)physCbPage1; //we have to point it to the PHYSICAL address of the control block (cb1)
     dmaHeader->CS = DMA_CS_ACTIVE; //set active bit, but everything else is 0.
     
-    sleep(100); //give time for copy to happen
+    sleep(5); //give time for copy to happen
 
 	return 0;
 }
