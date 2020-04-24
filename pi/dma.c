@@ -44,9 +44,9 @@ int reserve_dma_channel(void)
 		return -1;
 	int channel = -1;
 	char buf[10];
-	fprintf(stdout, "%d", dma_channel_fd);
+	fprintf(stderr, "%d", dma_channel_fd);
 	ssize_t amount = read(dma_channel_fd, buf, sizeof buf - 1);
-	fprintf(stdout, "%d", amount);
+	fprintf(stderr, "%d", amount);
 	if (amount <= 0)
 		return -1;
 	if (buf[amount-1] != '\n')
