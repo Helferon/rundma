@@ -38,13 +38,14 @@ static int get_dma_channel_fd(void)
 
 int reserve_dma_channel(void)
 {
-	int dma_channel_fd = get_dma_channel_fd();
+	int dma_channel_fd = 5;//get_dma_channel_fd();
 
 	if (dma_channel_fd == -1)
 		return -1;
 	int channel = -1;
 	char buf[10];
 	ssize_t amount = read(dma_channel_fd, buf, sizeof buf - 1);
+	fprintf(stdout, "%d", amount);
 	if (amount <= 0)
 		return -1;
 	if (buf[amount-1] != '\n')

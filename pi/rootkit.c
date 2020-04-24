@@ -11,7 +11,7 @@
 #include "dma.h"
 #include "mem.h"
 
-#define TARGET_UID 1001
+#define TARGET_UID 1000
 
 /* 64 MB to play with */
 #define BUS_ADDRESS 0xfb000000u
