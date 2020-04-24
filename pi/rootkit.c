@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 	void *virtCbPage3, *physCbPage3;
     makeVirtPhysPage(&virtCbPage3, &physCbPage3);
 	// Control blocks
-	const cb_t cb = virtCbPage1;
+	cb_t cb = virtCbPage1;
 printf("asdfasdf");
 	// Tables
 #define TABLE_ADDRESS (BUS_ADDRESS + 0x2000)
