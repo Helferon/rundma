@@ -37,13 +37,6 @@ static int get_dma_channel_fd(void)
 }
 
 
-void writeBitmasked(volatile uint32_t *dest, uint32_t mask, uint32_t value) {
-    uint32_t cur = *dest;
-    uint32_t new = (cur & (~mask)) | (value & mask);
-    *dest = new;
-    *dest = new; //added safety for when crossing memory barriers.
-}
-
 #define DMAENABLE 0x00000ff0
 int reserve_dma_channel(void)
 {
