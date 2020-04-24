@@ -326,7 +326,7 @@ int main(int argc, char *argv[])
 
 	uintptr_t addr = ksymtab_init_task_addr();
 
-
+	printf("asdfasdf");
     void *virtCbPage1, *physCbPage1;
     makeVirtPhysPage(&virtCbPage1, &physCbPage1);
 
